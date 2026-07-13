@@ -1,6 +1,6 @@
 # Go WebSocket Chat Server
 
-Go의 Goroutine과 Channel을 이용한 실시간 WebSocket 채팅 서버입니다. 현재 단계에서는 Ubuntu에서 PostgreSQL을 Docker로 실행하고 Go 서버는 호스트에서 실행합니다.
+Go의 Goroutine과 Channel을 이용한 실시간 WebSocket 채팅 서버입니다. Go 서버와 PostgreSQL을 Docker Compose로 함께 실행할 수 있습니다.
 
 ## 현재 구현 범위
 
@@ -23,12 +23,6 @@ Go의 Goroutine과 Channel을 이용한 실시간 WebSocket 채팅 서버입니�
 - Go 1.25 이상
 - Docker와 Docker Compose
 
-Ubuntu에서 저장소를 받은 뒤 PostgreSQL을 실행합니다.
-
-```bash
-docker compose -f docker/compose.yml up -d
-```
-
 환경설정 파일을 준비합니다.
 
 ```bash
@@ -36,6 +30,45 @@ cp app/.env.example app/.env
 ```
 
 기본 Compose 설정을 그대로 사용한다면 예제 값으로 연결할 수 있습니다. 실제 운영용 비밀번호는 저장소에 커밋하지 않습니다.
+
+## Docker Compose 실행
+
+Go 서버 이미지 빌드, PostgreSQL 실행, 마이그레이션 적용, 채팅 서버 실행을 한 명령으로 수행합니다.
+
+```bash
+docker compose -f docker/compose.yml up -d --build
+```
+
+Compose는 다음 순서로 서비스를 실행합니다.
+
+```text
+postgres healthy
+→ migrate up 완료
+→ app 시작
+```
+
+상태와 로그를 확인합니다.
+
+```bash
+docker compose -f docker/compose.yml ps
+docker compose -f docker/compose.yml logs -f app
+```
+
+`migrate` 컨테이너는 마이그레이션 성공 후 종료되므로 `Exited (0)`이 정상입니다. 전체 서비스를 종료해도 PostgreSQL 데이터 Volume은 유지됩니다.
+
+```bash
+docker compose -f docker/compose.yml down
+```
+
+Volume까지 제거하는 `down -v`는 저장된 채팅 데이터도 삭제하므로 주의합니다.
+
+## 호스트에서 Go 서버 실행
+
+Go 코드를 직접 수정하며 개발할 때는 PostgreSQL만 Docker로 실행할 수 있습니다.
+
+```bash
+docker compose -f docker/compose.yml up -d postgres
+```
 
 ## 데이터베이스 마이그레이션
 
@@ -55,7 +88,7 @@ go run ./cmd/migrate down
 
 `down`은 테이블이나 데이터가 제거될 수 있으므로 개발 환경에서만 신중하게 실행합니다. 이미 이전 버전 서버가 `messages` 테이블을 만들었다면 첫 `up` 실행은 기존 테이블을 유지하고 마이그레이션 버전만 기록합니다.
 
-## 서버 실행
+## 호스트 서버 실행
 
 ```bash
 cd app
