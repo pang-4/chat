@@ -1,8 +1,12 @@
 package database
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+	"fmt"
+)
 
-func Migrate (db *sql.DB) error{
+func Migrate(ctx context.Context, db *sql.DB) error {
 
 	query := `
 	CREATE TABLE IF NOT EXISTS messages (
@@ -13,9 +17,9 @@ func Migrate (db *sql.DB) error{
 	);
 	`
 
-	_, err := db.Exec(query)
-	if err != nil{
-		return err
+	_, err := db.ExecContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("create messages table: %w", err)
 	}
 
 	return nil

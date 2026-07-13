@@ -1,2 +1,7 @@
 .vscode/
 .env
+app/.env
+
+# Go build and test artifacts
+app/bin/
+app/coverage.out

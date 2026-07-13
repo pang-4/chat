@@ -1,42 +1,44 @@
 package database
 
 import (
-	"fmt"
+	"context"
 	"database/sql"
-	"os"
-	"github.com/joho/godotenv"
+	"fmt"
+	"net"
+	"net/url"
+	"time"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pang-4/chat/internal/config"
 )
 
-func Connect() (*sql.DB, error){
+func Open(ctx context.Context, cfg config.Database) (*sql.DB, error) {
+	connectionURL := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.User, cfg.Password),
+		Host:   net.JoinHostPort(cfg.Host, cfg.Port),
+		Path:   "/" + cfg.Name,
+	}
+	query := connectionURL.Query()
+	query.Set("sslmode", cfg.SSLMode)
+	connectionURL.RawQuery = query.Encode()
 
-	err := godotenv.Load()
-	if err != nil{
-		return nil, fmt.Errorf("failed to load .env: %w", err)
+	db, err := sql.Open("pgx", connectionURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("open postgres: %w", err)
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_SSLMODE"),
-	)
+	db.SetMaxOpenConns(cfg.MaxOpenConnections)
+	db.SetMaxIdleConns(cfg.MaxIdleConnections)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
-	db, err := sql.Open("pgx",dsn)
-	if err != nil{
-		return nil, err
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(pingCtx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
-
-	err = db.Ping()
-	if err != nil{
-		return nil, err
-	}
-
-	fmt.Println("Connected to PostgreSQL!")
 
 	return db, nil
 }
-
