@@ -10,8 +10,9 @@ import (
 )
 
 type Config struct {
-	Server   Server
-	Database Database
+	Server     Server
+	Database   Database
+	Migrations Migrations
 }
 
 type Server struct {
@@ -28,6 +29,10 @@ type Database struct {
 	SSLMode            string
 	MaxOpenConnections int
 	MaxIdleConnections int
+}
+
+type Migrations struct {
+	SourceURL string
 }
 
 func Load() (Config, error) {
@@ -60,6 +65,9 @@ func Load() (Config, error) {
 			SSLMode:            valueOrDefault("DB_SSLMODE", "disable"),
 			MaxOpenConnections: maxOpen,
 			MaxIdleConnections: maxIdle,
+		},
+		Migrations: Migrations{
+			SourceURL: valueOrDefault("MIGRATIONS_SOURCE_URL", "file://migrations"),
 		},
 	}
 

@@ -7,6 +7,7 @@ Go의 Goroutine과 Channel을 이용한 실시간 WebSocket 채팅 서버입니�
 - 다중 WebSocket 연결 관리
 - 입장, 채팅, 퇴장 메시지 Broadcast
 - PostgreSQL 채팅 메시지 저장
+- 버전 기반 PostgreSQL 스키마 마이그레이션
 - 클라이언트별 제한된 송신 큐
 - 느린 클라이언트 자동 연결 해제
 - Ping/Pong 기반 죽은 연결 정리
@@ -36,11 +37,30 @@ cp app/.env.example app/.env
 
 기본 Compose 설정을 그대로 사용한다면 예제 값으로 연결할 수 있습니다. 실제 운영용 비밀번호는 저장소에 커밋하지 않습니다.
 
+## 데이터베이스 마이그레이션
+
+Go 서버를 처음 실행하거나 새로운 마이그레이션을 받은 경우 먼저 마이그레이션을 적용합니다.
+
+```bash
+cd app
+go run ./cmd/migrate up
+```
+
+현재 버전 확인과 최근 마이그레이션 한 단계 롤백은 다음 명령을 사용합니다.
+
+```bash
+go run ./cmd/migrate version
+go run ./cmd/migrate down
+```
+
+`down`은 테이블이나 데이터가 제거될 수 있으므로 개발 환경에서만 신중하게 실행합니다. 이미 이전 버전 서버가 `messages` 테이블을 만들었다면 첫 `up` 실행은 기존 테이블을 유지하고 마이그레이션 버전만 기록합니다.
+
 ## 서버 실행
 
 ```bash
 cd app
 go mod download
+go run ./cmd/migrate up
 go run ./cmd/server
 ```
 

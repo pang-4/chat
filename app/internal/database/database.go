@@ -13,17 +13,7 @@ import (
 )
 
 func Open(ctx context.Context, cfg config.Database) (*sql.DB, error) {
-	connectionURL := &url.URL{
-		Scheme: "postgres",
-		User:   url.UserPassword(cfg.User, cfg.Password),
-		Host:   net.JoinHostPort(cfg.Host, cfg.Port),
-		Path:   "/" + cfg.Name,
-	}
-	query := connectionURL.Query()
-	query.Set("sslmode", cfg.SSLMode)
-	connectionURL.RawQuery = query.Encode()
-
-	db, err := sql.Open("pgx", connectionURL.String())
+	db, err := sql.Open("pgx", ConnectionURL(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}
@@ -41,4 +31,17 @@ func Open(ctx context.Context, cfg config.Database) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func ConnectionURL(cfg config.Database) string {
+	connectionURL := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.User, cfg.Password),
+		Host:   net.JoinHostPort(cfg.Host, cfg.Port),
+		Path:   "/" + cfg.Name,
+	}
+	query := connectionURL.Query()
+	query.Set("sslmode", cfg.SSLMode)
+	connectionURL.RawQuery = query.Encode()
+	return connectionURL.String()
 }
