@@ -8,7 +8,7 @@ Go의 Goroutine과 Channel을 이용한 실시간 WebSocket 채팅 서버입니�
 - [x] PostgreSQL 및 마이그레이션
 - [x] Docker Compose
 - [ ] k6 단일 서버 부하 테스트
-- [ ] Kafka 메시지 처리
+- [ ] Redis Pub/Sub 기반 다중 Pod 메시지 Broadcast
 - [ ] Kubernetes 배포
 - [ ] Helm
 - [ ] GitHub Actions
