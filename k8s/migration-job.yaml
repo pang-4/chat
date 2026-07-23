@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chat-migrate
+  namespace: chat
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: chat-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: chat-app:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - migrate
+            - up
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_NAME
+            - name: DB_SSLMODE
+              value: disable
+            - name: MIGRATIONS_SOURCE_URL
+              value: file://migrations
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
