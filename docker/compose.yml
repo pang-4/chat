@@ -9,6 +9,7 @@ x-chat-environment: &chat-environment
     - ../app/.env
   environment:
     DB_HOST: postgres
+    REDIS_ADDR: redis:6379
     MIGRATIONS_SOURCE_URL: file://migrations
 
 services:
@@ -26,6 +27,17 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8.2.7-alpine
+    container_name: chat-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 10
 
   migrate:
@@ -47,6 +59,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health/live"]
       interval: 10s
