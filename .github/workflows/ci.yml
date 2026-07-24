@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "docker/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "docker/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Go test and Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+
+      - name: Download Go modules
+        working-directory: app
+        run: go mod download
+
+      - name: Check Go formatting
+        working-directory: app
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [[ -n "${unformatted}" ]]; then
+            echo "The following files need gofmt:"
+            echo "${unformatted}"
+            exit 1
+          fi
+
+      - name: Run Go vet
+        working-directory: app
+        run: go vet ./...
+
+      - name: Run Go tests
+        working-directory: app
+        run: go test -race -cover ./...
+
+      - name: Build Go commands
+        working-directory: app
+        run: go build ./cmd/server ./cmd/migrate
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file docker/Dockerfile \
+            --tag chat-app:ci \
+            app
