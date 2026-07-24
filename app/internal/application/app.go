@@ -10,6 +10,7 @@ import (
 	"github.com/pang-4/chat/internal/chat"
 	"github.com/pang-4/chat/internal/config"
 	"github.com/pang-4/chat/internal/database"
+	"github.com/pang-4/chat/internal/messaging"
 	httpserver "github.com/pang-4/chat/internal/server"
 )
 
@@ -34,9 +35,22 @@ func Run(logger *slog.Logger) error {
 	hub := chat.NewHub(logger)
 	go hub.Run(ctx)
 
+	messageBroker, err := messaging.NewRedis(ctx, cfg.Redis, logger)
+	if err != nil {
+		return err
+	}
+	defer messageBroker.Close()
+	if err := messageBroker.Subscribe(ctx, func(payload []byte) {
+		if !hub.Broadcast(payload) {
+			logger.Warn("local broadcast skipped because hub stopped")
+		}
+	}); err != nil {
+		return err
+	}
+
 	repository := database.NewMessageRepository(db)
-	websocketHandler := chat.NewHandler(hub, repository, logger, cfg.Server.AllowedOrigins)
-	server := httpserver.New(cfg.Server, db, hub, websocketHandler, logger)
+	websocketHandler := chat.NewHandler(hub, repository, messageBroker, logger, cfg.Server.AllowedOrigins)
+	server := httpserver.New(cfg.Server, db, messageBroker, hub, websocketHandler, logger)
 
 	return server.Run(ctx)
 }
