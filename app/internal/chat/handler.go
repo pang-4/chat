@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -19,16 +20,24 @@ const (
 type Handler struct {
 	hub              *Hub
 	repository       MessageRepository
+	publisher        MessagePublisher
 	logger           *slog.Logger
 	allowEveryOrigin bool
 	allowedOrigins   map[string]struct{}
 	upgrader         websocket.Upgrader
 }
 
-func NewHandler(hub *Hub, repository MessageRepository, logger *slog.Logger, allowedOrigins []string) *Handler {
+func NewHandler(
+	hub *Hub,
+	repository MessageRepository,
+	publisher MessagePublisher,
+	logger *slog.Logger,
+	allowedOrigins []string,
+) *Handler {
 	handler := &Handler{
 		hub:            hub,
 		repository:     repository,
+		publisher:      publisher,
 		logger:         logger,
 		allowedOrigins: make(map[string]struct{}, len(allowedOrigins)),
 	}
@@ -64,7 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		h.hub.Unregister(client)
 		if client.Name() != "" {
-			h.broadcast(NewSystemMessage(client.Name() + "님이 퇴장했습니다."))
+			h.publish(r.Context(), NewSystemMessage(client.Name()+"님이 퇴장했습니다."))
 		}
 	}()
 
@@ -82,7 +91,7 @@ func (h *Handler) handleMessage(r *http.Request, client *Client, payload []byte)
 
 	switch incoming.Type {
 	case MessageTypeJoin:
-		h.handleJoin(client, incoming)
+		h.handleJoin(r.Context(), client, incoming)
 	case MessageTypeChat:
 		h.handleChat(r, client, incoming)
 	default:
@@ -90,7 +99,7 @@ func (h *Handler) handleMessage(r *http.Request, client *Client, payload []byte)
 	}
 }
 
-func (h *Handler) handleJoin(client *Client, incoming IncomingMessage) {
+func (h *Handler) handleJoin(ctx context.Context, client *Client, incoming IncomingMessage) {
 	if client.Name() != "" {
 		h.sendError(client, "이미 입장한 사용자입니다.")
 		return
@@ -103,7 +112,9 @@ func (h *Handler) handleJoin(client *Client, incoming IncomingMessage) {
 	}
 
 	client.setName(name)
-	h.broadcast(NewSystemMessage(name + "님이 입장했습니다."))
+	if err := h.publish(ctx, NewSystemMessage(name+"님이 입장했습니다.")); err != nil {
+		h.sendError(client, "입장 알림을 전달하지 못했습니다.")
+	}
 }
 
 func (h *Handler) handleChat(r *http.Request, client *Client, incoming IncomingMessage) {
@@ -129,16 +140,17 @@ func (h *Handler) handleChat(r *http.Request, client *Client, incoming IncomingM
 		return
 	}
 
-	h.broadcast(message)
+	if err := h.publish(r.Context(), message); err != nil {
+		h.sendError(client, "메시지를 전달하지 못했습니다. 잠시 후 다시 시도해주세요.")
+	}
 }
 
-func (h *Handler) broadcast(message Message) {
-	payload, err := json.Marshal(message)
-	if err != nil {
-		h.logger.Error("message encoding failed", "error", err)
-		return
+func (h *Handler) publish(ctx context.Context, message Message) error {
+	if err := h.publisher.Publish(ctx, message); err != nil {
+		h.logger.Error("message publish failed", "error", err, "type", message.Type, "sender", message.Sender)
+		return err
 	}
-	h.hub.Broadcast(payload)
+	return nil
 }
 
 func (h *Handler) sendError(client *Client, content string) {
