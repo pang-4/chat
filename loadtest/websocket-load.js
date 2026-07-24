@@ -2,7 +2,10 @@ import { check } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import { WebSocket } from 'k6/websockets';
 
-const wsURL = __ENV.WS_URL || 'ws://localhost:8080/ws';
+const wsURLs = (__ENV.WS_URLS || __ENV.WS_URL || 'ws://localhost:8080/ws')
+  .split(',')
+  .map((url) => url.trim())
+  .filter((url) => url.length > 0);
 const vus = Number(__ENV.VUS || 10);
 const holdSeconds = Number(__ENV.HOLD_SECONDS || 15);
 const messageIntervalMs = Number(__ENV.MESSAGE_INTERVAL_MS || 1000);
@@ -30,6 +33,10 @@ export const options = {
 };
 
 export default function () {
+  // VU를 WebSocket 주소에 순서대로 분배한다.
+  // VU 1 → 첫 번째 주소, VU 2 → 두 번째 주소, VU 3 → 세 번째 주소,
+  // VU 4 → 다시 첫 번째 주소로 연결된다.
+  const wsURL = wsURLs[(__VU - 1) % wsURLs.length];
   const socket = new WebSocket(wsURL);
   const username = `k6-user-${__VU}-${__ITER}`;
 
