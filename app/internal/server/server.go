@@ -20,6 +20,7 @@ type Server struct {
 func New(
 	cfg config.Server,
 	db *sql.DB,
+	redis readinessChecker,
 	hub *chat.Hub,
 	websocketHandler http.Handler,
 	logger *slog.Logger,
@@ -27,7 +28,7 @@ func New(
 	return &Server{
 		httpServer: &http.Server{
 			Addr:              cfg.Address,
-			Handler:           requestLogger(logger, newRouter(db, hub, websocketHandler)),
+			Handler:           requestLogger(logger, newRouter(db, redis, hub, websocketHandler)),
 			ReadHeaderTimeout: 5 * time.Second,
 			IdleTimeout:       60 * time.Second,
 		},
