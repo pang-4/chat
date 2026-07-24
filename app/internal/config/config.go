@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Server     Server
 	Database   Database
+	Redis      Redis
 	Migrations Migrations
 }
 
@@ -29,6 +30,13 @@ type Database struct {
 	SSLMode            string
 	MaxOpenConnections int
 	MaxIdleConnections int
+}
+
+type Redis struct {
+	Address  string
+	Password string
+	Database int
+	Channel  string
 }
 
 type Migrations struct {
@@ -50,6 +58,13 @@ func Load() (Config, error) {
 	if maxOpen < 1 || maxIdle < 0 || maxIdle > maxOpen {
 		return Config{}, fmt.Errorf("invalid database pool settings: max_idle must be between 0 and max_open")
 	}
+	redisDatabase, err := intFromEnv("REDIS_DB", 0)
+	if err != nil {
+		return Config{}, err
+	}
+	if redisDatabase < 0 {
+		return Config{}, fmt.Errorf("REDIS_DB must be zero or greater")
+	}
 
 	cfg := Config{
 		Server: Server{
@@ -65,6 +80,12 @@ func Load() (Config, error) {
 			SSLMode:            valueOrDefault("DB_SSLMODE", "disable"),
 			MaxOpenConnections: maxOpen,
 			MaxIdleConnections: maxIdle,
+		},
+		Redis: Redis{
+			Address:  valueOrDefault("REDIS_ADDR", "localhost:6379"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			Database: redisDatabase,
+			Channel:  valueOrDefault("REDIS_CHANNEL", "chat:messages"),
 		},
 		Migrations: Migrations{
 			SourceURL: valueOrDefault("MIGRATIONS_SOURCE_URL", "file://migrations"),
