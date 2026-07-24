@@ -19,6 +19,19 @@ type fakeMessageRepository struct {
 	messages []Message
 }
 
+type localPublisher struct {
+	hub *Hub
+}
+
+func (p *localPublisher) Publish(_ context.Context, message Message) error {
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	p.hub.Broadcast(payload)
+	return nil
+}
+
 func (r *fakeMessageRepository) Save(_ context.Context, message *Message) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -36,7 +49,7 @@ func TestWebSocketChatFlow(t *testing.T) {
 	go hub.Run(ctx)
 
 	repository := &fakeMessageRepository{}
-	handler := NewHandler(hub, repository, logger, []string{"*"})
+	handler := NewHandler(hub, repository, &localPublisher{hub: hub}, logger, []string{"*"})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -80,7 +93,7 @@ func TestChatRequiresJoin(t *testing.T) {
 	defer cancel()
 	go hub.Run(ctx)
 
-	handler := NewHandler(hub, &fakeMessageRepository{}, logger, []string{"*"})
+	handler := NewHandler(hub, &fakeMessageRepository{}, &localPublisher{hub: hub}, logger, []string{"*"})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
