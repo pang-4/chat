@@ -17,7 +17,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: chat-app
-          image: chat-app:local
+          image: chat-app:redis-v1
           imagePullPolicy: IfNotPresent
           command:
             - server
