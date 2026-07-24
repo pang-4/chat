@@ -17,7 +17,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: chat-app
-          image: chat-app:redis-v1
+          image: ghcr.io/pang-4/chat-app:8dd58c79cb5bda5bb63bc833a597f4612b8b64aa
           imagePullPolicy: IfNotPresent
           command:
             - server
