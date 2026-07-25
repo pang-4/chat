@@ -16,7 +16,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: ghcr.io/pang-4/chat-app:8dd58c79cb5bda5bb63bc833a597f4612b8b64aa
+          image: ghcr.io/pang-4/chat-app:da5a3a1cb20fdb1047567a475073ec2fe134755d
           imagePullPolicy: IfNotPresent
           command:
             - migrate
