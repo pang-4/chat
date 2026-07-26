@@ -19,6 +19,7 @@ func newRouter(db *sql.DB, redis readinessChecker, hub *chat.Hub, websocketHandl
 	mux := http.NewServeMux()
 
 	mux.Handle("/ws", websocketHandler)
+	mux.Handle("/metrics", metricsHandler(hub))
 	mux.HandleFunc("GET /health/live", liveHandler)
 	mux.HandleFunc("GET /health/ready", readyHandler(db, redis))
 	mux.HandleFunc("GET /stats", statsHandler(hub))
