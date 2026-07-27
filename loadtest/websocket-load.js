@@ -9,6 +9,7 @@ const wsURLs = (__ENV.WS_URLS || __ENV.WS_URL || 'ws://localhost:8080/ws')
 const vus = Number(__ENV.VUS || 10);
 const holdSeconds = Number(__ENV.HOLD_SECONDS || 15);
 const messageIntervalMs = Number(__ENV.MESSAGE_INTERVAL_MS || 1000);
+const websocketOpenState = 1;
 
 const connectionSuccess = new Rate('connection_success');
 const messageDeliverySuccess = new Rate('message_delivery_success');
@@ -85,7 +86,7 @@ export default function (sessionHoldSeconds = holdSeconds) {
 
   const startTraffic = () => {
     sendTimer = setInterval(() => {
-      if (socket.readyState !== WebSocket.OPEN) {
+      if (socket.readyState !== websocketOpenState) {
         stopTimers();
         return;
       }
@@ -109,7 +110,7 @@ export default function (sessionHoldSeconds = holdSeconds) {
       sessionTimer = setTimeout(() => {
         evaluateDelivery();
 
-        if (socket.readyState === WebSocket.OPEN) {
+        if (socket.readyState === websocketOpenState) {
           socket.close();
         }
       }, 1000);
