@@ -3,6 +3,11 @@
 .env
 app/.env
 
+
 # Go build and test artifacts
 app/bin/
 app/coverage.out
+
+# Obsidian 개인 설정
+.obsidian/
+**/.obsidian/
