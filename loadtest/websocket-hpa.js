@@ -27,7 +27,12 @@ export default function () {
   // HPA가 Metric을 수집하고 새 Pod를 생성할 시간을 확보하도록
   // VU별 WebSocket 연결 시작 시점을 전체 Ramp 구간에 균등하게 분산한다.
   const position = vus <= 1 ? 0 : (__VU - 1) / (vus - 1);
-  sleep(position * rampSeconds);
+  const startDelaySeconds = position * rampSeconds;
+  sleep(startDelaySeconds);
 
-  websocketSession();
+  // 먼저 연결된 VU가 Ramp 종료 전에 빠져나가지 않도록 종료 시점을 맞춘다.
+  // Ramp가 끝난 뒤 모든 VU가 HOLD_SECONDS 동안 동시에 연결된 상태가 된다.
+  const sessionHoldSeconds =
+    rampSeconds + holdSeconds - startDelaySeconds;
+  websocketSession(sessionHoldSeconds);
 }

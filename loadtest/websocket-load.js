@@ -32,7 +32,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function (sessionHoldSeconds = holdSeconds) {
   // VU를 WebSocket 주소에 순서대로 분배한다.
   // VU 1 → 첫 번째 주소, VU 2 → 두 번째 주소, VU 3 → 세 번째 주소,
   // VU 4 → 다시 첫 번째 주소로 연결된다.
@@ -44,7 +44,21 @@ export default function () {
   let joined = false;
   let sentCount = 0;
   let receivedOwnCount = 0;
+  let sendTimer;
+  let sessionTimer;
   const sentAt = new Map();
+
+  const stopTimers = () => {
+    if (sendTimer !== undefined) {
+      clearInterval(sendTimer);
+      sendTimer = undefined;
+    }
+
+    if (sessionTimer !== undefined) {
+      clearTimeout(sessionTimer);
+      sessionTimer = undefined;
+    }
+  };
 
   socket.addEventListener('open', () => {
     connected = true;
@@ -80,7 +94,13 @@ export default function () {
         'join broadcast received': () => true,
       });
 
-      const sendTimer = setInterval(() => {
+      sendTimer = setInterval(() => {
+        // 종료 이벤트와 타이머 실행이 겹쳐도 닫힌 소켓에는 전송하지 않는다.
+        if (socket.readyState !== WebSocket.OPEN) {
+          stopTimers();
+          return;
+        }
+
         sentCount += 1;
         const content = `${username}-message-${sentCount}`;
         sentAt.set(content, Date.now());
@@ -92,11 +112,12 @@ export default function () {
         }));
       }, messageIntervalMs);
 
-      setTimeout(() => {
+      sessionTimer = setTimeout(() => {
         clearInterval(sendTimer);
+        sendTimer = undefined;
 
         // 마지막 메시지가 돌아올 시간을 조금 기다린 후 결과를 판정한다.
-        setTimeout(() => {
+        sessionTimer = setTimeout(() => {
           const allOwnMessagesReceived =
             sentCount > 0 && receivedOwnCount === sentCount;
 
@@ -105,9 +126,11 @@ export default function () {
             'all own chat messages received': () => allOwnMessagesReceived,
           });
 
-          socket.close();
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.close();
+          }
         }, 1000);
-      }, holdSeconds * 1000);
+      }, sessionHoldSeconds * 1000);
 
       return;
     }
@@ -137,5 +160,9 @@ export default function () {
     if (!connected) {
       connectionSuccess.add(false);
     }
+  });
+
+  socket.addEventListener('close', () => {
+    stopTimers();
   });
 }
