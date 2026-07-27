@@ -1,5 +1,3 @@
-# ArgoCD 비공개 GitHub 저장소 인증 실패
-
 ## 문제
 
 ArgoCD `Application`을 생성한 뒤 상태를 확인했지만 `SYNC STATUS`가 `Unknown`으로 표시되었다.

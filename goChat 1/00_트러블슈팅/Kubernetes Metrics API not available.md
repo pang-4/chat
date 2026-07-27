@@ -1,5 +1,3 @@
-# Kubernetes Metrics API not available
-
 ## 문제
 
 Pod의 CPU와 메모리를 확인하기 위해 다음 명령을 실행하였다.

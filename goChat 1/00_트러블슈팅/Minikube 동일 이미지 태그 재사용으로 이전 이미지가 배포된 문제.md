@@ -1,5 +1,3 @@
-# Minikube 동일 이미지 태그 재사용으로 이전 이미지가 배포된 문제
-
 ## 문제
 
 Go 채팅 서버에 Redis Pub/Sub 기능을 추가한 뒤 새로운 Docker 이미지를 빌드하고 Minikube의 Chat Deployment를 재시작하였다.

@@ -1,5 +1,3 @@
-# ArgoCD Namespace not found
-
 ## 문제
 
 ArgoCD 설치 상태를 확인하려고 다음 명령을 실행하였다.

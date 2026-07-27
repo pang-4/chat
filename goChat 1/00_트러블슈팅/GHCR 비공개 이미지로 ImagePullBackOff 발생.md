@@ -1,5 +1,3 @@
-# GHCR 비공개 이미지로 ImagePullBackOff 발생
-
 ## 문제
 
 Chat Deployment의 이미지를 Minikube 로컬 이미지에서 GHCR 이미지로 변경하였다.
