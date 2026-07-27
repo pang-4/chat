@@ -42,13 +42,21 @@ export default function (sessionHoldSeconds = holdSeconds) {
 
   let connected = false;
   let joined = false;
+  let joinEvaluated = false;
+  let deliveryEvaluated = false;
   let sentCount = 0;
   let receivedOwnCount = 0;
+  let joinTimer;
   let sendTimer;
   let sessionTimer;
   const sentAt = new Map();
 
   const stopTimers = () => {
+    if (joinTimer !== undefined) {
+      clearTimeout(joinTimer);
+      joinTimer = undefined;
+    }
+
     if (sendTimer !== undefined) {
       clearInterval(sendTimer);
       sendTimer = undefined;
@@ -58,6 +66,54 @@ export default function (sessionHoldSeconds = holdSeconds) {
       clearTimeout(sessionTimer);
       sessionTimer = undefined;
     }
+  };
+
+  const evaluateDelivery = () => {
+    if (deliveryEvaluated) {
+      return;
+    }
+
+    deliveryEvaluated = true;
+    const allOwnMessagesReceived =
+      sentCount > 0 && receivedOwnCount === sentCount;
+
+    messageDeliverySuccess.add(allOwnMessagesReceived);
+    check({ sentCount, receivedOwnCount }, {
+      'all own chat messages received': () => allOwnMessagesReceived,
+    });
+  };
+
+  const startTraffic = () => {
+    sendTimer = setInterval(() => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        stopTimers();
+        return;
+      }
+
+      sentCount += 1;
+      const content = `${username}-message-${sentCount}`;
+      sentAt.set(content, Date.now());
+
+      socket.send(JSON.stringify({
+        type: 'chat',
+        sender: '',
+        content,
+      }));
+    }, messageIntervalMs);
+
+    sessionTimer = setTimeout(() => {
+      clearInterval(sendTimer);
+      sendTimer = undefined;
+
+      // 마지막 메시지가 돌아올 시간을 기다린 후 결과를 판정한다.
+      sessionTimer = setTimeout(() => {
+        evaluateDelivery();
+
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        }
+      }, 1000);
+    }, sessionHoldSeconds * 1000);
   };
 
   socket.addEventListener('open', () => {
@@ -70,16 +126,19 @@ export default function (sessionHoldSeconds = holdSeconds) {
       content: '',
     }));
 
-    setTimeout(() => {
-      if (joined) {
+    // 입장 알림 문구가 변경되더라도 실제 채팅 부하는 계속 발생시킨다.
+    // WebSocket은 전송 순서를 보장하므로 join 다음에 chat이 처리된다.
+    startTraffic();
+
+    joinTimer = setTimeout(() => {
+      if (joinEvaluated) {
         return;
       }
 
-      messageDeliverySuccess.add(false);
+      joinEvaluated = true;
       check(null, {
         'join broadcast received': () => false,
       });
-      socket.close();
     }, 5000);
   });
 
@@ -89,49 +148,16 @@ export default function (sessionHoldSeconds = holdSeconds) {
     if (!joined && message.type === 'system' &&
         message.content === `${username}님이 입장했습니다.`) {
       joined = true;
+      joinEvaluated = true;
+
+      if (joinTimer !== undefined) {
+        clearTimeout(joinTimer);
+        joinTimer = undefined;
+      }
 
       check(message, {
         'join broadcast received': () => true,
       });
-
-      sendTimer = setInterval(() => {
-        // 종료 이벤트와 타이머 실행이 겹쳐도 닫힌 소켓에는 전송하지 않는다.
-        if (socket.readyState !== WebSocket.OPEN) {
-          stopTimers();
-          return;
-        }
-
-        sentCount += 1;
-        const content = `${username}-message-${sentCount}`;
-        sentAt.set(content, Date.now());
-
-        socket.send(JSON.stringify({
-          type: 'chat',
-          sender: '',
-          content,
-        }));
-      }, messageIntervalMs);
-
-      sessionTimer = setTimeout(() => {
-        clearInterval(sendTimer);
-        sendTimer = undefined;
-
-        // 마지막 메시지가 돌아올 시간을 조금 기다린 후 결과를 판정한다.
-        sessionTimer = setTimeout(() => {
-          const allOwnMessagesReceived =
-            sentCount > 0 && receivedOwnCount === sentCount;
-
-          messageDeliverySuccess.add(allOwnMessagesReceived);
-          check({ sentCount, receivedOwnCount }, {
-            'all own chat messages received': () => allOwnMessagesReceived,
-          });
-
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.close();
-          }
-        }, 1000);
-      }, sessionHoldSeconds * 1000);
-
       return;
     }
 
@@ -163,6 +189,14 @@ export default function (sessionHoldSeconds = holdSeconds) {
   });
 
   socket.addEventListener('close', () => {
+    if (connected && !joinEvaluated) {
+      joinEvaluated = true;
+      check(null, {
+        'join broadcast received': () => false,
+      });
+    }
+
+    evaluateDelivery();
     stopTimers();
   });
 }

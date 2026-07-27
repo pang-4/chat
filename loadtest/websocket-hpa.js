@@ -11,7 +11,8 @@ export const options = {
       executor: 'per-vu-iterations',
       vus,
       iterations: 1,
-      maxDuration: `${rampSeconds + holdSeconds + 30}s`,
+      // 연결 지연과 마지막 메시지 수신·정리 시간을 충분히 확보한다.
+      maxDuration: `${rampSeconds + holdSeconds + 60}s`,
     },
   },
 
