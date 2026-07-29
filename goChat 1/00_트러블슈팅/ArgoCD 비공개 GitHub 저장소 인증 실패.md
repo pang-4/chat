@@ -75,7 +75,7 @@ git status --ignored
 
 ## 해결
 
-이 저장소는 채용 포트폴리오로 공개할 목적이므로 GitHub Repository의 Visibility를 `Public`으로 변경하였다.
+GitHub Repository의 Visibility를 `Public`으로 변경하였다.
 
 ```text
 GitHub Repository
