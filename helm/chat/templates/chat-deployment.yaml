@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-app
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chat-app
+    {{- include "chat.labels" . | nindent 4 }}
+spec:
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: chat-app
+  template:
+    metadata:
+      labels:
+        app: chat-app
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.chat.terminationGracePeriodSeconds }}
+      containers:
+        - name: chat-app
+          image: "{{ .Values.chat.image.repository }}:{{ .Values.chat.image.tag }}"
+          imagePullPolicy: {{ .Values.chat.image.pullPolicy }}
+          command:
+            - server
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: chat-app-config
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: DB_NAME
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.chat.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.chat.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.chat.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.chat.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.chat.probes.readiness.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.chat.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.chat.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.chat.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.chat.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.chat.probes.liveness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.chat.resources | nindent 12 }}

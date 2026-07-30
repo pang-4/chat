@@ -2,14 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: chat-app
-  namespace: chat
+  namespace: {{ .Release.Namespace }}
   labels:
     app: chat-app
+    {{- include "chat.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.chat.service.type }}
   selector:
     app: chat-app
   ports:
     - name: http
-      port: 8080
+      port: {{ .Values.chat.service.port }}
       targetPort: http

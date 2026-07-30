@@ -1,0 +1,21 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chat-app
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- toYaml .Values.serviceMonitor.labels | nindent 4 }}
+    {{- include "chat.labels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: chat-app
+  endpoints:
+    - port: http
+      path: {{ .Values.serviceMonitor.path }}
+      interval: {{ .Values.serviceMonitor.interval }}
+{{- end }}

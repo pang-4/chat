@@ -1,0 +1,13 @@
+Chat Platform이 {{ .Release.Namespace }} Namespace에 배포되었습니다.
+
+postgres-secret이 아직 없다면 배포 전에 먼저 생성하세요:
+
+  kubectl create secret generic {{ .Values.secret.name }} -n {{ .Release.Namespace }} \
+    --from-literal=DB_USER=<db-user> \
+    --from-literal=DB_PASSWORD=<db-password> \
+    --from-literal=DB_NAME=<db-name>
+
+상태 확인:
+
+  kubectl get pods -n {{ .Release.Namespace }}
+  kubectl get ingress -n {{ .Release.Namespace }}

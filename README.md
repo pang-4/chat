@@ -65,7 +65,7 @@ WebSocket Client
 | Database | PostgreSQL 17, pgx, golang-migrate |
 | Messaging | Redis 8 Pub/Sub, go-redis |
 | Container | Docker, Docker Compose |
-| Orchestration | Kubernetes, Minikube, NGINX Ingress, HPA |
+| Orchestration | Kubernetes, Minikube, Helm, NGINX Ingress, HPA |
 | CI/CD | GitHub Actions, GHCR, ArgoCD |
 | Observability | Prometheus, Grafana, Metrics Server, ServiceMonitor |
 | Load Test | k6 WebSocket |
@@ -215,11 +215,11 @@ GitHub Actions:
 5. Server와 Migration Binary Build
 6. Docker Image Build
 7. GHCR에 Commit SHA와 `latest` Tag Push
-8. Deployment와 Migration Job의 Image Tag 자동 Commit
+8. Helm Chart `values.yaml`의 Image Tag 자동 Commit
 
 ArgoCD:
 
-- `k8s` 경로와 `chat` Namespace 연결
+- `helm/chat` 경로의 Helm Chart와 `chat` Namespace 연결
 - Automated Sync
 - Prune
 - Self Heal
@@ -251,15 +251,19 @@ chat/
 ├── docker/
 │   ├── Dockerfile                 # Multi-stage Go Image
 │   └── compose.yml                # Local App, PostgreSQL, Redis
-├── k8s/
-│   ├── chat-deployment.yaml
-│   ├── chat-service.yaml
-│   ├── chat-ingress.yaml
-│   ├── chat-hpa.yaml
-│   ├── chat-servicemonitor.yaml
-│   ├── migration-job.yaml
-│   ├── postgres-*.yaml
-│   └── redis-*.yaml
+├── helm/
+│   └── chat/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│           ├── chat-deployment.yaml
+│           ├── chat-service.yaml
+│           ├── chat-ingress.yaml
+│           ├── chat-hpa.yaml
+│           ├── chat-servicemonitor.yaml
+│           ├── migration-job.yaml
+│           ├── postgres-*.yaml
+│           └── redis-*.yaml
 ├── loadtest/
 │   ├── websocket-smoke.js
 │   ├── websocket-load.js
@@ -349,6 +353,8 @@ k6 run \
 - [프로젝트 디렉터리 구조](<goChat 1/03. 프로젝트 구조.md>)
 - [Minikube 기본 개념](<goChat 1/05_미니쿠베/00. Minikube란 무엇이고 왜 사용하는가.md>)
 - [ArgoCD와 GitOps](<goChat 1/06_ArgoCD/00. ArgoCD란 무엇이고 GitOps는 무엇인가.md>)
+- [Helm 기본 개념](<goChat 1/12_Helm/00. Helm이란 무엇이고 왜 사용하는가.md>)
+- [프로젝트에 Helm 적용하기](<goChat 1/12_Helm/01. 프로젝트에 Helm 적용하기.md>)
 - [Grafana 기본 개념](<goChat 1/08_Grafana/01. Grafana란 무엇이고 왜 사용하는가.md>)
 - [HPA 기본 개념과 실제 결과](<goChat 1/10_HPA/01. HPA란 무엇이고 어떻게 동작하는가.md>)
 - [Ingress 기본 개념과 적용 과정](<goChat 1/11_Ingress/01. Ingress란 무엇이고 어떻게 적용했는가.md>)

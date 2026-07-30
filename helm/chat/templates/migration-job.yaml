@@ -1,8 +1,11 @@
+{{- if .Values.migrationJob.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: chat-migrate
-  namespace: chat
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chat.labels" . | nindent 4 }}
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
@@ -16,39 +19,34 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: ghcr.io/pang-4/chat-app:beae0a2c701bb1644f20a40df4912ae2ae9ffb4b
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.chat.image.repository }}:{{ .Values.chat.image.tag }}"
+          imagePullPolicy: {{ .Values.chat.image.pullPolicy }}
           command:
-            - migrate
-            - up
+            {{- toYaml .Values.migrationJob.command | nindent 12 }}
           env:
             - name: DB_HOST
-              value: postgres
+              value: {{ .Values.chat.config.DB_HOST | quote }}
             - name: DB_PORT
-              value: "5432"
+              value: {{ .Values.chat.config.DB_PORT | quote }}
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secret.name }}
                   key: DB_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secret.name }}
                   key: DB_PASSWORD
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secret.name }}
                   key: DB_NAME
             - name: DB_SSLMODE
-              value: disable
+              value: {{ .Values.chat.config.DB_SSLMODE | quote }}
             - name: MIGRATIONS_SOURCE_URL
-              value: file://migrations
+              value: {{ .Values.migrationJob.sourceURL | quote }}
           resources:
-            requests:
-              cpu: 25m
-              memory: 32Mi
-            limits:
-              cpu: 250m
-              memory: 128Mi
+            {{- toYaml .Values.migrationJob.resources | nindent 12 }}
+{{- end }}

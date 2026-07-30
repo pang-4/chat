@@ -8,7 +8,9 @@ spec:
   source:
     repoURL: https://github.com/pang-4/chat.git
     targetRevision: main
-    path: k8s
+    path: helm/chat
+    helm:
+      releaseName: chat
   destination:
     server: https://kubernetes.default.svc
     namespace: chat

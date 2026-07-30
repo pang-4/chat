@@ -2,7 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: chat
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chat.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
@@ -15,8 +17,8 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:8.2.7-alpine
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.redis.image }}
+          imagePullPolicy: {{ .Values.redis.pullPolicy }}
           command:
             - redis-server
           args:
@@ -46,9 +48,4 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
           resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
+            {{- toYaml .Values.redis.resources | nindent 12 }}

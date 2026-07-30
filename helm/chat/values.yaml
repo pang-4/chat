@@ -1,0 +1,129 @@
+# chat-app 관련 설정
+chat:
+  image:
+    repository: ghcr.io/pang-4/chat-app
+    tag: beae0a2c701bb1644f20a40df4912ae2ae9ffb4b
+    pullPolicy: IfNotPresent
+
+  # HPA가 replicas를 관리하므로 spec.replicas는 비워둔다 (기본 1로 시작 후 HPA가 조절)
+  terminationGracePeriodSeconds: 30
+
+  config:
+    SERVER_ADDR: ":8080"
+    WS_ALLOWED_ORIGINS: "*"
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    DB_SSLMODE: disable
+    DB_MAX_OPEN_CONNS: "25"
+    DB_MAX_IDLE_CONNS: "10"
+    REDIS_ADDR: redis:6379
+    REDIS_DB: "0"
+    REDIS_CHANNEL: chat:messages
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: "1"
+      memory: 256Mi
+
+  probes:
+    readiness:
+      path: /health/ready
+      initialDelaySeconds: 2
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+    liveness:
+      path: /health/live
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+# postgres-secret은 Git에 커밋하지 않고 아래 명령으로 미리 생성해 둔다.
+# kubectl create secret generic postgres-secret -n chat \
+#   --from-literal=DB_USER=... --from-literal=DB_PASSWORD=... --from-literal=DB_NAME=...
+secret:
+  name: postgres-secret
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Max
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitoring
+  interval: 15s
+  path: /metrics
+
+migrationJob:
+  enabled: true
+  command:
+    - migrate
+    - up
+  sourceURL: file://migrations
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+postgres:
+  image: postgres:17
+  pullPolicy: IfNotPresent
+  storage: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+redis:
+  image: redis:8.2.7-alpine
+  pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
