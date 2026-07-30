@@ -2,7 +2,7 @@
 chat:
   image:
     repository: ghcr.io/pang-4/chat-app
-    tag: beae0a2c701bb1644f20a40df4912ae2ae9ffb4b
+    tag: f5f33e2ac5e9ff62d46e24f63773ec0a6ffd1f29
     pullPolicy: IfNotPresent
 
   # HPA가 replicas를 관리하므로 spec.replicas는 비워둔다 (기본 1로 시작 후 HPA가 조절)
