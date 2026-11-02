@@ -346,21 +346,6 @@ k6 run \
   loadtest/websocket-hpa.js
 ```
 
-## 상세 문서
-
-- [프로젝트 개요](<goChat 1/00. 프로젝트 개요.md>)
-- [전체 구조도](<goChat 1/02. 구조도.md>)
-- [프로젝트 디렉터리 구조](<goChat 1/03. 프로젝트 구조.md>)
-- [Minikube 기본 개념](<goChat 1/05_미니쿠베/00. Minikube란 무엇이고 왜 사용하는가.md>)
-- [ArgoCD와 GitOps](<goChat 1/06_ArgoCD/00. ArgoCD란 무엇이고 GitOps는 무엇인가.md>)
-- [Helm 기본 개념](<goChat 1/12_Helm/00. Helm이란 무엇이고 왜 사용하는가.md>)
-- [프로젝트에 Helm 적용하기](<goChat 1/12_Helm/01. 프로젝트에 Helm 적용하기.md>)
-- [Grafana 기본 개념](<goChat 1/08_Grafana/01. Grafana란 무엇이고 왜 사용하는가.md>)
-- [HPA 기본 개념과 실제 결과](<goChat 1/10_HPA/01. HPA란 무엇이고 어떻게 동작하는가.md>)
-- [Ingress 기본 개념과 적용 과정](<goChat 1/11_Ingress/01. Ingress란 무엇이고 어떻게 적용했는가.md>)
-- [k6 WebSocket 실습과 Grafana 분석](<goChat 1/07_실습/03. k6 WebSocket 부하 테스트와 Grafana 분석.md>)
-- [HPA 테스트 트러블슈팅](<goChat 1/00_트러블슈팅/k6 WebSocket HPA 테스트에서 메시지 미전송과 Port Forward 단절.md>)
-
 ## 검증 범위와 한계
 
 이번 결과는 단일 Mini PC의 Minikube 단일 Node 환경에서 측정했습니다.
